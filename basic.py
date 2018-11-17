@@ -32,7 +32,6 @@ class MyStreamListener(tweepy.StreamListener):
 
     def on_data(self, data):
         try:
-            print("Do data")
             tweet = json.loads(data)
             db.insert_one(tweet)
             print("inserted")
