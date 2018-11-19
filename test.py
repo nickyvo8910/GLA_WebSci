@@ -30,7 +30,7 @@ _COLLECTIONS = ['fat', 'basic', 'enhancedStream', 'rest', 'geo']
 class MyStreamListener(tweepy.StreamListener):
     # Check for connection
     def on_connect(self):
-        print("Connected")
+        print("Basic Stream Connected")
     # When has data
 
     def on_data(self, data):
@@ -39,18 +39,23 @@ class MyStreamListener(tweepy.StreamListener):
             tweet = json.loads(data)
             db[_COLLECTIONS[0]].insert_one(tweet)
             db[_COLLECTIONS[1]].insert_one(tweet)
-        except TweepError:
-            print("TweepError")
         except RateLimitError:
-            print("RateLimitError")
+            print("RateLimitErrorBASIC")
+        except TweepError:
+            print("TweepErrorBASIC")
         except Exception:
             print(traceback.format_exc())
+
+    def on_error(self, status_code):
+        if status_code == 420:
+            # returning False in on_data disconnects the stream
+            return False
 
 
 class MyEnhancedStream(tweepy.StreamListener):
     # Check for connection
     def on_connect(self):
-        print("Connected")
+        print("Enhanced Stream Connected")
     # When has data
 
     def on_data(self, data):
@@ -59,18 +64,23 @@ class MyEnhancedStream(tweepy.StreamListener):
             tweet = json.loads(data)
             db[_COLLECTIONS[0]].insert_one(tweet)
             db[_COLLECTIONS[2]].insert_one(tweet)
-        except TweepError:
-            print("TweepError")
         except RateLimitError:
-            print("RateLimitError")
+            print("RateLimitErrorENHANCED")
+        except TweepError:
+            print("TweepErrorENHANCED")
         except Exception:
             print(traceback.format_exc())
+
+    def on_error(self, status_code):
+        if status_code == 420:
+            # returning False in on_data disconnects the stream
+            return False
 
 
 class MyGeoStream(tweepy.StreamListener):
     # Check for connection
     def on_connect(self):
-        print("Connected")
+        print("Geo Stream Connected")
     # When has data
 
     def on_data(self, data):
@@ -78,12 +88,17 @@ class MyGeoStream(tweepy.StreamListener):
             tweet = json.loads(data)
             db[_COLLECTIONS[0]].insert_one(tweet)
             db[_COLLECTIONS[4]].insert_one(tweet)
-        except TweepError:
-            print("TweepError")
         except RateLimitError:
-            print("RateLimitError")
+            print("RateLimitErrorGEO")
+        except TweepError:
+            print("TweepErrorGEO")
         except Exception:
             print(traceback.format_exc())
+
+    def on_error(self, status_code):
+        if status_code == 420:
+            # returning False in on_data disconnects the stream
+            return False
 
 
 def streamBasic():
@@ -114,13 +129,14 @@ def restProbe(callLeft):
                 db[_COLLECTIONS[0]].insert_one(data)
                 db[_COLLECTIONS[3]].insert_one(data)
             callLeft -= 1
-        while(callLeft == 0):
-            callLeft = api.rate_limit_status
-    except TweepError:
-        print("TweepError")
+        if(callLeft == 0):
+            print("DODGED")
+            restProbe(api.rate_limit_status)
     except RateLimitError:
-        print("RateLimitError")
+        print("RateLimitErrorREST")
         restProbe(0)
+    except TweepError:
+        print("TweepErrorREST")
     except Exception:
         print(traceback.format_exc())
 
