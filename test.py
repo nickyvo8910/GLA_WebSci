@@ -1,13 +1,13 @@
 import datetime
-import pymongo
-from pymongo import MongoClient
-import tweepy
-from tweepy import TweepError, RateLimitError
 import json
-import traceback
-
 import multiprocessing
 import time
+import traceback
+
+import pymongo
+import tweepy
+from pymongo import MongoClient
+from tweepy import RateLimitError, TweepError
 
 # Setting up tokens
 consumer_key = "VIGGAj16rqqaEOEEJjVWaROpi"
@@ -39,8 +39,6 @@ class MyStreamListener(tweepy.StreamListener):
             tweet = json.loads(data)
             db[_COLLECTIONS[0]].insert_one(tweet)
             db[_COLLECTIONS[1]].insert_one(tweet)
-            ## DEBUG: OK
-            print("basic_insert_one")
         except TweepError:
             print("TweepError")
         except RateLimitError:
@@ -61,8 +59,6 @@ class MyEnhancedStream(tweepy.StreamListener):
             tweet = json.loads(data)
             db[_COLLECTIONS[0]].insert_one(tweet)
             db[_COLLECTIONS[2]].insert_one(tweet)
-            ## DEBUG: OK
-            print("streamDb_insert_one")
         except TweepError:
             print("TweepError")
         except RateLimitError:
@@ -72,12 +68,16 @@ class MyEnhancedStream(tweepy.StreamListener):
 
 
 class MyGeoStream(tweepy.StreamListener):
+    # Check for connection
+    def on_connect(self):
+        print("Connected")
+    # When has data
+
     def on_data(self, data):
         try:
             tweet = json.loads(data)
             db[_COLLECTIONS[0]].insert_one(tweet)
             db[_COLLECTIONS[4]].insert_one(tweet)
-            print("geoDb---inserted")
         except TweepError:
             print("TweepError")
         except RateLimitError:
@@ -97,7 +97,6 @@ def streamEnhanced():
     print('StartEnhanced')
     myStreamListener = MyEnhancedStream()
     myStream = tweepy.Stream(auth=api.auth, listener=myStreamListener)
-    # myStream.track(languages = ['en'],track=['mariahcarey'],async=True)
     myStream.filter(languages=['en'], track=['mariahcarey'], async=True)
 
 
@@ -114,7 +113,6 @@ def restProbe(callLeft):
                 data = json.loads(json.dumps(tweet._json))
                 db[_COLLECTIONS[0]].insert_one(data)
                 db[_COLLECTIONS[3]].insert_one(data)
-                print("restDb---inserted")
             callLeft -= 1
         while(callLeft == 0):
             callLeft = api.rate_limit_status
@@ -131,7 +129,6 @@ def streamGeo():
     print("Starting Geo")
     myStreamListener = MyGeoStream()
     myStream = tweepy.Stream(auth=api.auth, listener=myStreamListener)
-    # myStream.track(languages = ['en'],track=['mariahcarey'],async=True)
     myStream.filter(languages=['en'], locations=[-4.393201,
                                                  55.781277, -4.071717, 55.929638], async=True)
 
@@ -141,16 +138,16 @@ _RUNNING_TIME = 5 * 60
 if __name__ == '__main__':
     # Start as a process
     p = multiprocessing.Process(
-        target=streamBasic, name="streamBasic")  # args=(10,))
+        target=streamBasic, name="streamBasic")
     p.start()
     p2 = multiprocessing.Process(
-        target=streamEnhanced, name="streamEnhanced")  # args=(10,))
+        target=streamEnhanced, name="streamEnhanced")
     p2.start()
     p3 = multiprocessing.Process(
         target=restProbe, name="restProbe", args=(_RUNNING_TIME,))
     p3.start()
     p4 = multiprocessing.Process(
-        target=streamGeo, name="streamGeo")  # args=(10,))
+        target=streamGeo, name="streamGeo")
     p4.start()
 
     p.join(_RUNNING_TIME)
